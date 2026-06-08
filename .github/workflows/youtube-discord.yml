@@ -3,7 +3,7 @@ name: YouTube to Discord
 
 on:
   schedule:
-        - cron: "*/30 * * * *"
+    - cron: "*/30 * * * *"
   workflow_dispatch:
     inputs:
       force_channel_id:
