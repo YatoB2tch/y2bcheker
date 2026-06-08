@@ -38,7 +38,7 @@ jobs:
           BOT_NAME: ${{ secrets.BOT_NAME }}
           BOT_AVATAR_URL: ${{ secrets.BOT_AVATAR_URL }}
           FORCE_CHANNEL_ID: ${{ github.event.inputs.force_channel_id }}
-                    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         run: python youtube_to_discord.py
 
       - name: Commit state if changed
