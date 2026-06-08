@@ -2,6 +2,7 @@ import os
 import json
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 import requests
 import xml.etree.ElementTree as ET
@@ -23,6 +24,10 @@ RETRY_COUNT = 3
 RETRY_DELAY = 5
 
 
+def now_iso() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def fail(msg: str):
     print(msg)
     sys.exit(1)
@@ -42,6 +47,7 @@ def load_state() -> dict:
 
 
 def save_state(data: dict):
+    data["last_updated"] = now_iso()
     STATE_FILE.write_text(
         json.dumps(data, ensure_ascii=False, indent=2),
         encoding="utf-8"
@@ -54,7 +60,10 @@ def get_last_video_id(state: dict, channel_id: str):
 
 def set_last_video_id(state: dict, channel_id: str, video_id: str):
     state.setdefault("channels", {})
-    state["channels"][channel_id] = {"video_id": video_id}
+    state["channels"][channel_id] = {
+        "video_id": video_id,
+        "updated_at": now_iso()
+    }
 
 
 def fetch_with_retry(url: str, timeout: int = 30):
@@ -118,7 +127,6 @@ def send_to_discord(video, force: bool = False):
     }
     if video.get("published"):
         try:
-            from datetime import datetime
             dt = datetime.fromisoformat(video["published"].replace("Z", "+00:00"))
             embed["timestamp"] = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
         except Exception:
@@ -161,7 +169,7 @@ def run_force(channel_id: str):
     state = load_state()
     set_last_video_id(state, channel_id, video["video_id"])
     save_state(state)
-    print(f"[FORCE] Done. state.json updated.")
+    print(f"[FORCE] Done. state.json updated at {state['last_updated']}")
 
 
 def main():
@@ -198,7 +206,12 @@ def main():
             print(f"[{channel_id}] No new videos.")
     if state_changed:
         save_state(state)
-        print("state.json updated.")
+        print(f"state.json updated at {state['last_updated']}")
+    else:
+        # Always update last_checked timestamp even if no new videos
+        state["last_checked"] = now_iso()
+        save_state(state)
+        print(f"No changes. state.json last_checked updated at {state['last_updated']}")
 
 
 if __name__ == "__main__":
